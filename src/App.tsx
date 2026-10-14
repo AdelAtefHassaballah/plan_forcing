@@ -139,27 +139,43 @@ export function App() {
       } else if (view === 'preview') {
         window.location.hash = 'preview';
       } else {
-        const targetQ = draftQuestions.length > 0 ? draftQuestions : publicQuestions;
-        if (targetQ.length > 0) {
-          const encoded = encodeQuestionsToURLParam(targetQ);
-          window.location.hash = `quiz?data=${encoded}`;
-        } else {
+        const sheetUrl = getStoredGoogleSheetUrl();
+        if (sheetUrl) {
           window.location.hash = 'quiz';
+        } else {
+          const targetQ = draftQuestions.length > 0 ? draftQuestions : publicQuestions;
+          if (targetQ.length > 0) {
+            const encoded = encodeQuestionsToURLParam(targetQ);
+            window.location.hash = `quiz?data=${encoded}`;
+          } else {
+            window.location.hash = 'quiz';
+          }
         }
       }
     }
   };
 
   const handleCopyQuizShareLink = async () => {
-    const targetQ = draftQuestions.length > 0 ? draftQuestions : publicQuestions;
-    if (targetQ.length === 0) return;
-    const encoded = encodeQuestionsToURLParam(targetQ);
+    const sheetUrl = getStoredGoogleSheetUrl();
     const baseUrl = window.location.origin + window.location.pathname;
-    const shareUrl = `${baseUrl}#quiz?data=${encoded}`;
+    let shareUrl = baseUrl;
+
+    if (!sheetUrl) {
+      const targetQ = draftQuestions.length > 0 ? draftQuestions : publicQuestions;
+      if (targetQ.length > 0) {
+        const encoded = encodeQuestionsToURLParam(targetQ);
+        shareUrl = `${baseUrl}#quiz?data=${encoded}`;
+      }
+    }
+
     try {
       if (navigator.clipboard) {
         await navigator.clipboard.writeText(shareUrl);
-        alert('Shareable link copied to clipboard!\n\nSend this link to anyone and it will load these exact questions!');
+        alert(
+          sheetUrl
+            ? 'Live Quiz link copied to clipboard!\n\nAnyone opening this link will always see the latest questions live from your Google Sheet!'
+            : 'Shareable link copied to clipboard!\n\nSend this link to anyone and it will load these exact questions!'
+        );
       } else {
         window.prompt('Copy this link to send to someone:', shareUrl);
       }

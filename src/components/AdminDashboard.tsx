@@ -156,13 +156,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
    * Generates and copies an instant shareable link containing the questionnaire data
    */
   const handleCopyShareableLink = async () => {
-    const encoded = encodeQuestionsToURLParam(questions);
     const baseUrl = window.location.origin + window.location.pathname;
-    const shareUrl = `${baseUrl}#quiz?data=${encoded}`;
+    let shareUrl = baseUrl;
+    if (!googleSheetUrl) {
+      const encoded = encodeQuestionsToURLParam(questions);
+      shareUrl = `${baseUrl}#quiz?data=${encoded}`;
+    }
     try {
       if (navigator.clipboard) {
         await navigator.clipboard.writeText(shareUrl);
-        showToast('Instant shareable link copied! Anyone opening this link plays your custom quiz immediately without any GitHub push needed!');
+        showToast(
+          googleSheetUrl
+            ? 'Live Quiz link copied! Anyone opening this link automatically loads the latest questions from your Google Sheet!'
+            : 'Instant shareable link copied! Anyone opening this link plays your custom quiz immediately without any GitHub push needed!'
+        );
       } else {
         window.prompt('Copy this shareable link:', shareUrl);
       }

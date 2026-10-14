@@ -18,7 +18,7 @@ export function parseAndValidateCSV(csvText: string): {
   const questions: QuizQuestion[] = [];
 
   // Remove possible UTF-8 BOM
-  const cleanText = csvText.replace(/^\uFEFF/, '').trim();
+  let cleanText = csvText.replace(/^\uFEFF/, '').trim();
 
   if (!cleanText) {
     return {
@@ -31,6 +31,26 @@ export function parseAndValidateCSV(csvText: string): {
         warnings: [],
       },
     };
+  }
+
+  // Handle case where user pasted raw CSV into Google Sheets/Excel as a single column.
+  // Google Sheets exports single-column lines wrapped entirely in quotes: "col1,col2,col3"
+  const lines = cleanText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  if (
+    lines.length > 0 &&
+    lines[0].startsWith('"') &&
+    lines[0].endsWith('"') &&
+    lines[0].includes(',') &&
+    !lines[0].includes('","')
+  ) {
+    cleanText = lines
+      .map((line) => {
+        if (line.startsWith('"') && line.endsWith('"')) {
+          return line.slice(1, -1).replace(/""/g, '"');
+        }
+        return line;
+      })
+      .join('\n');
   }
 
   const parsed = Papa.parse<Record<string, string>>(cleanText, {
