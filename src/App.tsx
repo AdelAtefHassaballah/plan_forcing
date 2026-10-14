@@ -43,18 +43,7 @@ export function App() {
     const initializeData = async () => {
       setIsLoading(true);
 
-      // 1. Load draft questions from localStorage
-      const savedDraft = loadDraftQuestions();
-      const fallbackParsed = parseAndValidateCSV(DEFAULT_SAMPLE_CSV).questions;
-
-      if (savedDraft && savedDraft.length > 0) {
-        setDraftQuestions(savedDraft);
-      } else {
-        setDraftQuestions(fallbackParsed);
-        saveDraftQuestions(fallbackParsed);
-      }
-
-      // 2. Check if a shareable link was opened with URL-encoded data (?data=... or #quiz?data=...)
+      // 1. Check if a shareable link was opened with URL-encoded data (?data=... or #quiz?data=...)
       let urlData: string | null = null;
       if (typeof window !== 'undefined') {
         const searchParams = new URLSearchParams(window.location.search);
@@ -72,30 +61,43 @@ export function App() {
         const decodedFromUrl = decodeQuestionsFromURLParam(urlData);
         if (decodedFromUrl && decodedFromUrl.length > 0) {
           setPublicQuestions(decodedFromUrl);
+          setDraftQuestions(decodedFromUrl);
           setIsLoading(false);
           return;
         }
       }
 
+      // 2. Load draft questions from localStorage (user uploaded or edited on this device)
+      const savedDraft = loadDraftQuestions();
+      if (savedDraft && savedDraft.length > 0) {
+        setDraftQuestions(savedDraft);
+        setPublicQuestions(savedDraft);
+        setIsLoading(false);
+        return;
+      }
+
       // 3. Otherwise fetch public/questions.csv from site root
       try {
         const response = await fetch('./questions.csv');
-
         if (response.ok) {
           const csvText = await response.text();
           const parsed = parseAndValidateCSV(csvText);
           if (parsed.report.isValid && parsed.questions.length > 0) {
             setPublicQuestions(parsed.questions);
-          } else {
-            setPublicQuestions(fallbackParsed);
+            setDraftQuestions(parsed.questions);
+            saveDraftQuestions(parsed.questions);
+            setIsLoading(false);
+            return;
           }
-        } else {
-          setPublicQuestions(fallbackParsed);
         }
       } catch {
-        setPublicQuestions(fallbackParsed);
+        // Fallback
       }
 
+      const fallbackParsed = parseAndValidateCSV(DEFAULT_SAMPLE_CSV).questions;
+      setPublicQuestions(fallbackParsed);
+      setDraftQuestions(fallbackParsed);
+      saveDraftQuestions(fallbackParsed);
       setIsLoading(false);
     };
 
@@ -124,27 +126,46 @@ export function App() {
   useEffect(() => {
     const onHashChange = () => {
       const hash = window.location.hash.toLowerCase();
-      if (hash === '#admin') setCurrentView('admin');
-      else if (hash === '#preview') setCurrentView('preview');
-      else if (hash === '#quiz' || hash === '') setCurrentView('quiz');
+      if (hash.startsWith('#admin')) setCurrentView('admin');
+      else if (hash.startsWith('#preview')) setCurrentView('preview');
+      else setCurrentView('quiz');
     };
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
-  // Save updated draft questions from Admin Dashboard
+  // Save updated draft questions from Admin Dashboard (updates both draft and public view!)
   const handleSaveDraft = (updated: QuizQuestion[]) => {
     setDraftQuestions(updated);
+    setPublicQuestions(updated);
     saveDraftQuestions(updated);
   };
 
   // Reset draft to original default
-  const handleResetToDefault = () => {
+  const handleResetToDefault = async () => {
     clearDraftQuestions();
+    try {
+      const response = await fetch('./questions.csv');
+      if (response.ok) {
+        const csvText = await response.text();
+        const parsed = parseAndValidateCSV(csvText);
+        if (parsed.report.isValid && parsed.questions.length > 0) {
+          setDraftQuestions(parsed.questions);
+          setPublicQuestions(parsed.questions);
+          saveDraftQuestions(parsed.questions);
+          return;
+        }
+      }
+    } catch {
+      // Fallback
+    }
+
     const fallbackParsed = parseAndValidateCSV(DEFAULT_SAMPLE_CSV).questions;
     setDraftQuestions(fallbackParsed);
+    setPublicQuestions(fallbackParsed);
     saveDraftQuestions(fallbackParsed);
   };
+
 
   // Active questions depending on view mode
   const activeQuestions = currentView === 'preview' ? draftQuestions : publicQuestions;
