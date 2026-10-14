@@ -3,4 +3,5 @@
  * If you have a published Google Sheet or public sheet link, paste it below.
  * When set, the website fetches questions live from Google Sheets automatically on every visit!
  */
-export const defaultGoogleSheetUrl = '';
+export const defaultGoogleSheetUrl = 'https://docs.google.com/spreadsheets/d/1qhJA4vkX_oOxZgzZcORiY_n3epvSE2ysWu1Q1U4YGhc/export?format=csv';
+
