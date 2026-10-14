@@ -9,11 +9,11 @@ import { CompletionScreen } from './components/CompletionScreen';
 import { AdminDashboard } from './components/AdminDashboard';
 import { Loader2 } from 'lucide-react';
 
-const DEFAULT_SAMPLE_CSV = `question_id,question,option_a,option_b,option_c,option_d,correct_option
-1,What should we do?,Go for coffee,Go for a walk,Watch a movie,Stay home,A
-2,When should we do it?,Tomorrow,This weekend,Next month,Whenever,B
-3,What time works best?,Morning,Afternoon,Evening,Night,C
-4,Are you ready to decide?,Yes,No,Maybe,Ask me later,A`;
+const DEFAULT_SAMPLE_CSV = `"question_id","question","option_a","option_b","option_c","option_d","correct_option"
+"1","What we are going to eat tommorow?","برجر الوحش","كبدة الفلاح","البركة","هصوم","A"
+"2","where to go after that?","cilantro ","Friends","Back home","Be homeless in the streets","B"
+"4","Are you ready to decide?","Yes","No","Maybe","Ask me later","A"`;
+
 
 export function App() {
   // Navigation view: 'quiz' (public) | 'admin' (dashboard) | 'preview' (test draft)
