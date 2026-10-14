@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { QuizQuestion, QuizOption, UserSelection, AppView } from './types/quiz';
-import { parseAndValidateCSV } from './utils/csv';
+import { parseAndValidateCSV, decodeQuestionsFromURLParam } from './utils/csv';
 import { loadDraftQuestions, saveDraftQuestions, clearDraftQuestions } from './utils/storage';
 import { Header } from './components/Header';
 import { ProgressBar } from './components/ProgressBar';
@@ -54,10 +54,33 @@ export function App() {
         saveDraftQuestions(fallbackParsed);
       }
 
-      // 2. Fetch public/questions.csv from site root
+      // 2. Check if a shareable link was opened with URL-encoded data (?data=... or #quiz?data=...)
+      let urlData: string | null = null;
+      if (typeof window !== 'undefined') {
+        const searchParams = new URLSearchParams(window.location.search);
+        urlData = searchParams.get('data') || searchParams.get('d');
+        if (!urlData && window.location.hash.includes('data=')) {
+          const hashQuery = window.location.hash.split('?')[1];
+          if (hashQuery) {
+            const hashParams = new URLSearchParams(hashQuery);
+            urlData = hashParams.get('data') || hashParams.get('d');
+          }
+        }
+      }
+
+      if (urlData) {
+        const decodedFromUrl = decodeQuestionsFromURLParam(urlData);
+        if (decodedFromUrl && decodedFromUrl.length > 0) {
+          setPublicQuestions(decodedFromUrl);
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // 3. Otherwise fetch public/questions.csv from site root
       try {
-        // Use relative path for GitHub Pages compatibility
         const response = await fetch('./questions.csv');
+
         if (response.ok) {
           const csvText = await response.text();
           const parsed = parseAndValidateCSV(csvText);

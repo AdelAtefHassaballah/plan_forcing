@@ -1,6 +1,6 @@
 import React, { useState, useRef, useId } from 'react';
 import type { QuizQuestion, CSVValidationReport } from '../types/quiz';
-import { parseAndValidateCSV, exportQuestionsToCSV, downloadCSV } from '../utils/csv';
+import { parseAndValidateCSV, exportQuestionsToCSV, downloadCSV, encodeQuestionsToURLParam } from '../utils/csv';
 import {
   UploadCloud,
   Download,
@@ -15,6 +15,8 @@ import {
   AlertCircle,
   Info,
   GitBranch,
+  Share2,
+  ExternalLink,
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -114,6 +116,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     downloadCSV('questions.csv', csvContent);
     showToast('Exported questions.csv (ready for public/questions.csv)');
   };
+
+  /**
+   * Generates and copies an instant shareable link containing the questionnaire data
+   */
+  const handleCopyShareableLink = async () => {
+    const encoded = encodeQuestionsToURLParam(questions);
+    const baseUrl = window.location.origin + window.location.pathname;
+    const shareUrl = `${baseUrl}#quiz?data=${encoded}`;
+    try {
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(shareUrl);
+        showToast('Instant shareable link copied! Anyone opening this link plays your custom quiz immediately without any GitHub push needed!');
+      } else {
+        window.prompt('Copy this shareable link:', shareUrl);
+      }
+    } catch {
+      window.prompt('Copy this shareable link:', shareUrl);
+    }
+  };
+
 
   /**
    * Edit question in table
@@ -218,6 +240,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <Eye className="w-4 h-4 text-slate-600" />
             <span>Preview Draft</span>
           </button>
+
+          <button
+            onClick={handleCopyShareableLink}
+            type="button"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold text-xs sm:text-sm shadow-sm transition-colors cursor-pointer"
+          >
+            <Share2 className="w-4 h-4" />
+            <span>Copy Shareable Link</span>
+          </button>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -238,6 +269,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <Download className="w-3.5 h-3.5 text-indigo-600" />
             <span>Export questions.csv</span>
           </button>
+
 
           <button
             onClick={() => {
@@ -462,32 +494,67 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       </div>
 
-      {/* 3. GitHub Pages Publishing Guide */}
-      <div className="bg-slate-900 text-slate-200 rounded-2xl p-6 shadow-md space-y-3">
-        <h3 className="font-heading font-bold text-base text-white flex items-center gap-2">
-          <GitBranch className="w-4 h-4 text-indigo-400" />
-          Publishing to GitHub Pages
-        </h3>
-        <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-          Because this website is hosted statically without a backend, follow these 3 simple steps whenever you want to update the public questionnaire:
-        </p>
-        <ol className="list-decimal list-inside text-xs sm:text-sm text-slate-300 space-y-2 pl-1">
-          <li>
-            Click <strong>"Export questions.csv"</strong> above to download your finalized questionnaire.
-          </li>
-          <li>
-            Place the downloaded file into your project's <code>public/questions.csv</code> location.
-          </li>
-          <li>
-            Commit and push the file to your repository's <code>main</code> branch:
-            <pre className="mt-1.5 p-2.5 rounded-xl bg-slate-800 text-indigo-300 font-mono text-xs overflow-x-auto">
-              git add public/questions.csv{'\n'}git commit -m "Update questionnaire"{'\n'}git push origin main
-            </pre>
-          </li>
-        </ol>
-        <p className="text-xs text-slate-400">
-          The included GitHub Actions workflow will automatically build and publish your changes to GitHub Pages in under 60 seconds!
-        </p>
+      {/* 3. Publishing Guide */}
+      <div className="bg-slate-900 text-slate-200 rounded-2xl p-6 shadow-md space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <h3 className="font-heading font-bold text-base text-white flex items-center gap-2">
+            <GitBranch className="w-4 h-4 text-indigo-400" />
+            How to Share or Update Your Questions
+          </h3>
+          <button
+            onClick={handleCopyShareableLink}
+            type="button"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition-colors cursor-pointer"
+          >
+            <Share2 className="w-3.5 h-3.5" />
+            <span>Copy Shareable Link</span>
+          </button>
+        </div>
+
+        {/* Method 1: Instant Shareable Link */}
+        <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700 space-y-1.5">
+          <p className="text-xs sm:text-sm font-bold text-emerald-400">
+            Method 1: Instant Shareable Link (Fastest - No GitHub push needed!)
+          </p>
+          <p className="text-xs text-slate-300 leading-relaxed">
+            Click <strong>"Copy Shareable Link"</strong> at the top. The questionnaire data is encoded directly into the link. Send this link to anyone and they will immediately play your custom questions with no waiting!
+          </p>
+        </div>
+
+        {/* Method 2: Permanent Update on GitHub */}
+        <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700 space-y-2">
+          <p className="text-xs sm:text-sm font-bold text-indigo-300">
+            Method 2: Update the Permanent Root URL on GitHub Pages
+          </p>
+          <p className="text-xs text-slate-300 leading-relaxed">
+            To update the default questionnaire that loads at your main link (<code>https://adelatefhassaballah.github.io/plan_forcing/</code>):
+          </p>
+          <ol className="list-decimal list-inside text-xs text-slate-300 space-y-1.5 pl-1">
+            <li>
+              Click <strong>"Export questions.csv"</strong> to download your updated questionnaire.
+            </li>
+            <li>
+              Upload the file directly to your GitHub repository in your browser:
+              <div className="mt-2">
+                <a
+                  href="https://github.com/AdelAtefHassaballah/plan_forcing/upload/main/public"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-xs transition-colors"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Upload to GitHub Web (Drag & Drop questions.csv)</span>
+                </a>
+              </div>
+            </li>
+            <li className="pt-1">
+              Or use Git in terminal:
+              <pre className="mt-1 p-2 rounded-lg bg-slate-900 text-indigo-300 font-mono text-[11px] overflow-x-auto">
+                git add public/questions.csv{'\n'}git commit -m "Update questions"{'\n'}git push origin main
+              </pre>
+            </li>
+          </ol>
+        </div>
       </div>
     </div>
   );

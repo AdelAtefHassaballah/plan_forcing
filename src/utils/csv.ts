@@ -259,3 +259,43 @@ export function downloadCSV(filename: string, csvContent: string) {
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 }
+
+/**
+ * Encodes questions into a URL-safe base64 parameter (UTF-8 safe)
+ */
+export function encodeQuestionsToURLParam(questions: QuizQuestion[]): string {
+  try {
+    const csv = exportQuestionsToCSV(questions);
+    const bytes = new TextEncoder().encode(csv);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return encodeURIComponent(btoa(binary));
+  } catch (err) {
+    console.error('Failed to encode questions to URL:', err);
+    return '';
+  }
+}
+
+/**
+ * Decodes questions from a URL-safe base64 parameter (UTF-8 safe)
+ */
+export function decodeQuestionsFromURLParam(encoded: string): QuizQuestion[] | null {
+  try {
+    const binary = atob(decodeURIComponent(encoded));
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    const csv = new TextDecoder('utf-8').decode(bytes);
+    const parsed = parseAndValidateCSV(csv);
+    if (parsed.report.isValid && parsed.questions.length > 0) {
+      return parsed.questions;
+    }
+  } catch (err) {
+    console.error('Failed to decode questions from URL:', err);
+  }
+  return null;
+}
+
