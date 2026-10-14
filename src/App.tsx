@@ -2,7 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import type { QuizQuestion, QuizOption, UserSelection, AppView } from './types/quiz';
 import { parseAndValidateCSV, decodeQuestionsFromURLParam, encodeQuestionsToURLParam } from './utils/csv';
 import { loadDraftQuestions, saveDraftQuestions, clearDraftQuestions } from './utils/storage';
+import { getStoredGoogleSheetUrl, saveStoredGoogleSheetUrl, fetchLiveGoogleSheetCSV } from './utils/googleSheets';
 import { Header } from './components/Header';
+
 import { ProgressBar } from './components/ProgressBar';
 import { QuestionCard } from './components/QuestionCard';
 import { CompletionScreen } from './components/CompletionScreen';
@@ -31,6 +33,7 @@ export function App() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [publicQuestions, setPublicQuestions] = useState<QuizQuestion[]>([]);
   const [draftQuestions, setDraftQuestions] = useState<QuizQuestion[]>([]);
+  const [googleSheetUrl, setGoogleSheetUrl] = useState<string>(() => getStoredGoogleSheetUrl());
   
   // Quiz progress state
   const [currentIndex, setCurrentIndex] = useState<number>(0);
@@ -67,7 +70,26 @@ export function App() {
         }
       }
 
-      // 2. Load draft questions from localStorage (user uploaded or edited on this device)
+      // 2. Check if a Google Sheet is connected for live automatic synchronization
+      const sheetUrl = getStoredGoogleSheetUrl();
+      if (sheetUrl) {
+        try {
+          const sheetCsv = await fetchLiveGoogleSheetCSV(sheetUrl);
+          if (sheetCsv) {
+            const parsed = parseAndValidateCSV(sheetCsv);
+            if (parsed.report.isValid && parsed.questions.length > 0) {
+              setPublicQuestions(parsed.questions);
+              setDraftQuestions(parsed.questions);
+              setIsLoading(false);
+              return;
+            }
+          }
+        } catch (err) {
+          console.warn('Google Sheet live sync failed:', err);
+        }
+      }
+
+      // 3. Load draft questions from localStorage (user uploaded or edited on this device)
       const savedDraft = loadDraftQuestions();
       if (savedDraft && savedDraft.length > 0) {
         setDraftQuestions(savedDraft);
@@ -191,6 +213,34 @@ export function App() {
     saveDraftQuestions(fallbackParsed);
   };
 
+  // Connect or disconnect Google Sheet for live automatic sync
+  const handleUpdateGoogleSheetUrl = async (url: string) => {
+    setGoogleSheetUrl(url);
+    saveStoredGoogleSheetUrl(url);
+
+    if (url.trim()) {
+      setIsLoading(true);
+      try {
+        const csv = await fetchLiveGoogleSheetCSV(url);
+        if (csv) {
+          const parsed = parseAndValidateCSV(csv);
+          if (parsed.report.isValid && parsed.questions.length > 0) {
+            setPublicQuestions(parsed.questions);
+            setDraftQuestions(parsed.questions);
+            saveDraftQuestions(parsed.questions);
+          } else {
+            throw new Error('Google Sheet data was fetched, but columns or rows were invalid.');
+          }
+        }
+      } catch (err) {
+        setIsLoading(false);
+        throw err;
+      }
+      setIsLoading(false);
+    }
+  };
+
+
 
   // Active questions depending on view mode
   const activeQuestions = currentView === 'preview' ? draftQuestions : publicQuestions;
@@ -262,6 +312,8 @@ export function App() {
             onResetToDefault={handleResetToDefault}
             onLaunchPublic={() => handleNavigate('quiz')}
             onPreview={() => handleNavigate('preview')}
+            googleSheetUrl={googleSheetUrl}
+            onUpdateGoogleSheetUrl={handleUpdateGoogleSheetUrl}
           />
         ) : (
           <div className="w-full flex flex-col items-center justify-center my-auto">

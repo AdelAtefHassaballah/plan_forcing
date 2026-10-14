@@ -17,6 +17,9 @@ import {
   GitBranch,
   Share2,
   ExternalLink,
+  FileSpreadsheet,
+  RefreshCw,
+  Link2,
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -25,15 +28,18 @@ interface AdminDashboardProps {
   onResetToDefault: () => void;
   onLaunchPublic: () => void;
   onPreview: () => void;
+  googleSheetUrl: string;
+  onUpdateGoogleSheetUrl: (url: string) => Promise<void>;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
-
   questions,
   onSaveQuestions,
   onResetToDefault,
   onLaunchPublic,
   onPreview,
+  googleSheetUrl,
+  onUpdateGoogleSheetUrl,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const fileInputId = useId();
@@ -52,6 +58,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setNotification(msg);
     setTimeout(() => setNotification(null), 3500);
   };
+
+  const [sheetInput, setSheetInput] = useState<string>(googleSheetUrl);
+  const [isSyncingSheet, setIsSyncingSheet] = useState<boolean>(false);
+  const [sheetError, setSheetError] = useState<string | null>(null);
+
+  const handleConnectSheet = async () => {
+    if (!sheetInput.trim()) {
+      setSheetError('Please paste your Google Sheet URL.');
+      return;
+    }
+    setSheetError(null);
+    setIsSyncingSheet(true);
+    try {
+      await onUpdateGoogleSheetUrl(sheetInput.trim());
+      showToast('Connected to Google Sheet! Questions synced live.');
+    } catch (err: unknown) {
+      setSheetError((err as Error).message || 'Failed to connect. Make sure sharing is set to "Anyone with the link can view".');
+    } finally {
+      setIsSyncingSheet(false);
+    }
+  };
+
+  const handleDisconnectSheet = async () => {
+    setSheetInput('');
+    setSheetError(null);
+    await onUpdateGoogleSheetUrl('');
+    showToast('Disconnected Google Sheet. Reverted to local questions.');
+  };
+
 
   /**
    * Handle CSV file drop or file select
@@ -284,6 +319,91 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           >
             <RotateCcw className="w-4 h-4" />
           </button>
+        </div>
+      </div>
+
+      {/* Google Sheets Live Sync Card */}
+      <div className="bg-white rounded-2xl border-2 border-emerald-200/90 p-6 shadow-xs space-y-4 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-36 h-36 bg-emerald-100/50 rounded-full blur-2xl pointer-events-none" />
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h2 className="font-heading font-bold text-lg text-slate-800 flex items-center gap-2">
+              <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
+              Google Sheets Live Auto-Sync 🔄
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Edit your questions directly in Google Sheets — your quiz updates automatically without any code, file uploads, or GitHub commits!
+            </p>
+          </div>
+
+          {googleSheetUrl && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-200 self-start sm:self-auto">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              Live Sync Active
+            </span>
+          )}
+        </div>
+
+        {/* Input & Connect Action */}
+        <div className="space-y-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <div className="relative flex-1">
+              <Link2 className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={sheetInput}
+                onChange={(e) => setSheetInput(e.target.value)}
+                placeholder="Paste Google Sheet URL (e.g. https://docs.google.com/spreadsheets/d/...)"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs sm:text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white"
+              />
+            </div>
+
+            <button
+              onClick={handleConnectSheet}
+              disabled={isSyncingSheet}
+              type="button"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-semibold text-xs sm:text-sm shadow-xs transition-colors cursor-pointer shrink-0"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isSyncingSheet ? 'animate-spin' : ''}`} />
+              <span>{googleSheetUrl ? 'Re-Sync Now' : 'Connect & Sync Live'}</span>
+            </button>
+
+            {googleSheetUrl && (
+              <button
+                onClick={handleDisconnectSheet}
+                type="button"
+                className="inline-flex items-center justify-center px-3 py-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 text-xs font-medium transition-colors cursor-pointer shrink-0"
+              >
+                Disconnect
+              </button>
+            )}
+          </div>
+
+          {sheetError && (
+            <p className="text-xs font-semibold text-rose-600 flex items-center gap-1">
+              <AlertCircle className="w-3.5 h-3.5" />
+              {sheetError}
+            </p>
+          )}
+
+          {/* Quick Guide */}
+          <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-100 text-xs text-slate-600 space-y-1.5">
+            <p className="font-bold text-emerald-900">
+              ⚡ How to setup your Google Sheet in 3 quick steps:
+            </p>
+            <ol className="list-decimal list-inside space-y-1 text-slate-600 pl-1">
+              <li>
+                In Google Sheets, set your columns in Row 1: <code>question_id, question, option_a, option_b, option_c, option_d, correct_option</code>.
+              </li>
+              <li>
+                Click <strong>Share</strong> (top right of Google Sheet) and set to <strong>"Anyone with the link can view"</strong> (or File &gt; Share &gt; Publish to web &gt; CSV).
+              </li>
+              <li>
+                Paste that link into the box above and click <strong>"Connect & Sync Live"</strong>!
+              </li>
+            </ol>
+          </div>
         </div>
       </div>
 

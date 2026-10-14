@@ -50,6 +50,23 @@ question_id,question,option_a,option_b,option_c,option_d,correct_option
 
 ---
 
+## 📊 Google Sheets Live Auto-Sync (Real-Time Updates)
+
+Want to update questions anytime from your phone or laptop in Google Sheets without touching GitHub, terminal, or uploading files?
+
+1. **Create a Google Sheet**:
+   In Row 1, set the exact column headers:
+   `question_id, question, option_a, option_b, option_c, option_d, correct_option`
+2. **Make it viewable**:
+   Click **Share** in the top right of your Google Sheet, and set General Access to **"Anyone with the link can view"** (or click **File > Share > Publish to web** and choose **CSV**).
+3. **Connect in Admin Dashboard**:
+   Open your website's **[Admin Dashboard](https://adelatefhassaballah.github.io/plan_forcing/#admin)**, paste your Google Sheet URL into the **Google Sheets Live Auto-Sync** card, and click **Connect & Sync Live**.
+4. **Done!**
+   Every time you edit or add questions in Google Sheets, your website automatically fetches and displays the updated questions in real-time!
+
+---
+
+
 ## 🚀 How to Run Locally
 
 1. **Install dependencies**:
