@@ -1,5 +1,5 @@
 import React from 'react';
-import { Volume2, VolumeX, LayoutDashboard, Play, Sparkles, Eye } from 'lucide-react';
+import { Volume2, VolumeX, LayoutDashboard, Play, Sparkles, Eye, Share2 } from 'lucide-react';
 import type { AppView } from '../types/quiz';
 
 interface HeaderProps {
@@ -8,6 +8,7 @@ interface HeaderProps {
   soundEnabled: boolean;
   onToggleSound: () => void;
   hasDraft: boolean;
+  onShareLink?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -16,6 +17,7 @@ export const Header: React.FC<HeaderProps> = ({
   soundEnabled,
   onToggleSound,
   hasDraft,
+  onShareLink,
 }) => {
   return (
     <header className="relative z-10 w-full max-w-4xl mx-auto px-4 pt-4 pb-2 flex flex-col sm:flex-row items-center justify-between gap-3">
@@ -85,6 +87,19 @@ export const Header: React.FC<HeaderProps> = ({
             <span>Dashboard</span>
           </button>
         )}
+
+        {onShareLink && (
+          <button
+            onClick={onShareLink}
+            type="button"
+            title="Copy link to send to someone"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold text-xs shadow-xs transition-colors cursor-pointer"
+          >
+            <Share2 className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Share Link</span>
+          </button>
+        )}
+
 
         <button
           onClick={onToggleSound}

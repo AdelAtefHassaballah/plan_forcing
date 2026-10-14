@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { QuizQuestion, QuizOption, UserSelection, AppView } from './types/quiz';
-import { parseAndValidateCSV, decodeQuestionsFromURLParam } from './utils/csv';
+import { parseAndValidateCSV, decodeQuestionsFromURLParam, encodeQuestionsToURLParam } from './utils/csv';
 import { loadDraftQuestions, saveDraftQuestions, clearDraftQuestions } from './utils/storage';
 import { Header } from './components/Header';
 import { ProgressBar } from './components/ProgressBar';
@@ -117,10 +117,35 @@ export function App() {
       } else if (view === 'preview') {
         window.location.hash = 'preview';
       } else {
-        window.location.hash = 'quiz';
+        const targetQ = draftQuestions.length > 0 ? draftQuestions : publicQuestions;
+        if (targetQ.length > 0) {
+          const encoded = encodeQuestionsToURLParam(targetQ);
+          window.location.hash = `quiz?data=${encoded}`;
+        } else {
+          window.location.hash = 'quiz';
+        }
       }
     }
   };
+
+  const handleCopyQuizShareLink = async () => {
+    const targetQ = draftQuestions.length > 0 ? draftQuestions : publicQuestions;
+    if (targetQ.length === 0) return;
+    const encoded = encodeQuestionsToURLParam(targetQ);
+    const baseUrl = window.location.origin + window.location.pathname;
+    const shareUrl = `${baseUrl}#quiz?data=${encoded}`;
+    try {
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(shareUrl);
+        alert('Shareable link copied to clipboard!\n\nSend this link to anyone and it will load these exact questions!');
+      } else {
+        window.prompt('Copy this link to send to someone:', shareUrl);
+      }
+    } catch {
+      window.prompt('Copy this link to send to someone:', shareUrl);
+    }
+  };
+
 
   // Listen to hash changes (back/forward browser buttons)
   useEffect(() => {
@@ -225,6 +250,7 @@ export function App() {
         soundEnabled={soundEnabled}
         onToggleSound={toggleSound}
         hasDraft={draftQuestions.length > 0}
+        onShareLink={handleCopyQuizShareLink}
       />
 
       {/* Main Content Area */}
