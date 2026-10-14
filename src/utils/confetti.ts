@@ -1,15 +1,15 @@
 import confetti from 'canvas-confetti';
 
 /**
- * Quick burst of confetti for answering a question correctly
+ * Quick burst of confetti for answering a question correctly (neutral colorful palette)
  */
 export function launchQuestionConfetti() {
   try {
     confetti({
-      particleCount: 50,
+      particleCount: 45,
       spread: 60,
       origin: { y: 0.65 },
-      colors: ['#f43f5e', '#ec4899', '#fb7185', '#fda4af', '#fef08a'],
+      colors: ['#3b82f6', '#8b5cf6', '#eab308', '#06b6d4', '#10b981'],
       ticks: 180,
       disableForReducedMotion: true,
     });
@@ -19,12 +19,12 @@ export function launchQuestionConfetti() {
 }
 
 /**
- * Grand celebratory confetti shower for the final "IT'S A DATE!" screen
+ * Grand celebration confetti shower for questionnaire completion
  */
 export function launchGrandConfetti() {
   try {
-    const end = Date.now() + 2.5 * 1000;
-    const colors = ['#f43f5e', '#ec4899', '#e11d48', '#d946ef', '#fbcfe8', '#fef08a'];
+    const end = Date.now() + 2 * 1000;
+    const colors = ['#3b82f6', '#8b5cf6', '#eab308', '#6366f1', '#14b8a6'];
 
     const frame = () => {
       confetti({
@@ -47,22 +47,6 @@ export function launchGrandConfetti() {
       }
     };
     frame();
-  } catch {
-    // Fallback
-  }
-}
-
-/**
- * Big burst when making it officially confirmed
- */
-export function launchOfficialConfetti() {
-  try {
-    confetti({
-      particleCount: 100,
-      spread: 100,
-      origin: { y: 0.5 },
-      colors: ['#ff1493', '#ff69b4', '#ff4500', '#ffd700', '#ffffff'],
-    });
   } catch {
     // Fallback
   }
